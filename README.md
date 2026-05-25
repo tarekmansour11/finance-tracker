@@ -20,7 +20,7 @@ Most finance apps either require open banking access or lock your data in their 
 - [ ] Optional web dashboard (local-only)
 - [ ] Export reports to CSV or PDF
 
-> **TODO:** Define the full feature set and prioritise the roadmap before v0.1.
+See [SPEC.md](./SPEC.md) for the full specification and roadmap.
 
 ---
 
