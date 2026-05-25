@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %} — Subscriptions{% endblock %}
+
+{% block content %}
+<h1>Subscriptions</h1>
+
+{% if subscriptions %}
+<div class="grid grid-3" style="margin-bottom:32px">
+  <div class="card">
+    <div class="stat-label">Active Subscriptions</div>
+    <div class="stat-value">{{ subscriptions|length }}</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Monthly Cost</div>
+    <div class="stat-value red">£{{ "%.2f"|format(total_annual / 12) }}</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Annual Cost</div>
+    <div class="stat-value red">£{{ "%.2f"|format(total_annual) }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Merchant</th>
+        <th>Category</th>
+        <th>Frequency</th>
+        <th style="text-align:right">Amount</th>
+        <th style="text-align:right">Annual</th>
+        <th>Next Charge</th>
+        <th>Price History</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in subscriptions %}
+      <tr>
+        <td><strong>{{ s.merchant }}</strong></td>
+        <td><span class="badge">{{ s.category or "—" }}</span></td>
+        <td style="color:var(--muted)">{{ s.frequency.value }}</td>
+        <td style="text-align:right" class="debit">£{{ "%.2f"|format(s.amount) }}</td>
+        <td style="text-align:right" class="debit">£{{ "%.2f"|format(s.annual_cost) }}</td>
+        <td style="color:var(--muted)">{{ s.next_charge_date or "—" }}</td>
+        <td>
+          {% if s.had_price_increase %}
+          <span class="badge red">Price rise</span>
+          {% else %}
+          <span style="color:var(--muted)">Stable</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p class="empty">No subscriptions detected yet. Import transactions first.</p>
+{% endif %}
+{% endblock %}

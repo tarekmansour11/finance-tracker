@@ -1,45 +1,31 @@
 # finance-tracker
 
-A self-hosted personal finance tracker. Import your bank transactions, categorise spending automatically, and get a clear picture of where your money goes — without handing your data to a third party.
-
----
-
-## Project Purpose
-
-Most finance apps either require open banking access or lock your data in their cloud. This project takes the opposite approach: you export your transactions (CSV, OFX, or similar), run this tool locally, and get clean insights with no external dependencies beyond what you install yourself.
-
----
-
-## Planned Features
-
-- [ ] Import transactions from CSV exports (Monzo, Starling, HSBC formats)
-- [ ] Auto-categorisation of transactions using rule-based and ML-assisted matching
-- [ ] Monthly spending summaries by category
-- [ ] Budget targets with over/under tracking
-- [ ] Simple CLI interface for querying and reporting
-- [ ] Optional web dashboard (local-only)
-- [ ] Export reports to CSV or PDF
+A self-hosted personal finance tracker. Import your bank transactions via CSV, get automatic categorisation, subscription detection, and a clean web dashboard — all running locally, no cloud, no open banking.
 
 See [SPEC.md](./SPEC.md) for the full specification and roadmap.
 
 ---
 
-## Project Structure
+## Features (v0.1)
+
+- **CSV import** — bank-agnostic; column names are configurable per export format
+- **Auto-categorisation** — rule-based engine (Groceries, Transport, Utilities, etc.) with Ollama LLM fallback for unknowns
+- **De-duplication** — reimporting the same CSV never creates duplicate records
+- **Subscription detection** — automatically identifies recurring charges and detects price increases
+- **Web dashboard** — monthly overview with charts, transaction browser, subscription list
+- **CLI** — import, summarise, list subscriptions, launch the dashboard
+
+---
+
+## Architecture
+
+Onion architecture — inner layers have no dependency on outer layers:
 
 ```
-finance-tracker/
-├── src/
-│   └── finance_tracker/
-│       ├── __init__.py
-│       ├── models.py        # Data models (Transaction, Category, Budget)
-│       ├── importers/       # Format-specific CSV/OFX importers
-│       ├── categoriser.py   # Rule-based categorisation logic
-│       └── reports.py       # Summary and reporting functions
-├── tests/
-├── main.py                  # CLI entry point
-├── pyproject.toml
-├── .gitignore
-└── CHANGELOG.md
+domain/          → core models and port interfaces (no external deps)
+application/     → use cases (import, detect subscriptions, reporting)
+infrastructure/  → SQLite repos, CSV reader, rule engine, Ollama client
+presentation/    → Typer CLI, FastAPI web app + Jinja2 templates
 ```
 
 ---
@@ -49,7 +35,12 @@ finance-tracker/
 ### Prerequisites
 
 - Python 3.11+
-- [uv](https://github.com/astral-sh/uv) (recommended) or pip
+- [Ollama](https://ollama.com) (optional — for LLM categorisation; falls back to rules if not running)
+
+```bash
+# Install Ollama, then pull a model
+ollama pull mistral
+```
 
 ### Installation
 
@@ -57,18 +48,69 @@ finance-tracker/
 git clone https://github.com/tarekmansour11/finance-tracker.git
 cd finance-tracker
 
-# With uv
-uv sync
-
-# Or with pip
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -e .
 ```
 
-### Running
+---
+
+## Usage
+
+### Import a CSV
+
+Your CSV must have at minimum: `date`, `description`, `amount` columns.
 
 ```bash
-python main.py --help
+finance-tracker import-csv transactions.csv
 ```
+
+If your bank uses different column names, remap them:
+
+```bash
+finance-tracker import-csv export.csv \
+  --date-col "Transaction Date" \
+  --desc-col "Narrative" \
+  --amount-col "Amount (GBP)"
+```
+
+Supported date formats: `YYYY-MM-DD`, `DD/MM/YYYY`, `DD-MM-YYYY`, `MM/DD/YYYY`.
+
+### View a summary
+
+```bash
+finance-tracker summary                  # all months
+finance-tracker summary --year 2024 --month 3   # specific month
+```
+
+### List subscriptions
+
+```bash
+finance-tracker subscriptions
+```
+
+### Launch the dashboard
+
+```bash
+finance-tracker serve                    # opens http://127.0.0.1:8000
+finance-tracker serve --port 9000        # custom port
+```
+
+---
+
+## CSV Format
+
+Minimal expected format:
+
+```csv
+date,description,amount,currency
+2024-01-15,NETFLIX.COM,-15.99,GBP
+2024-01-16,SALARY DEPOSIT,3500.00,GBP
+```
+
+- Positive amounts = credits (income)
+- Negative amounts = debits (spending)
+- `currency` column is optional (defaults to GBP)
 
 ---
 
@@ -76,21 +118,59 @@ python main.py --help
 
 ```bash
 # Install dev dependencies
-uv sync --group dev
+pip install -e ".[dev]"
 
 # Run tests
 pytest
 
-# Lint & format
+# Run tests with coverage
+pytest --cov=finance_tracker
+
+# Lint
 ruff check .
-ruff format .
+```
+
+### Test fixtures
+
+Fake CSVs live in `tests/fixtures/` — no real financial data is ever committed.
+
+---
+
+## Project Structure
+
+```
+src/finance_tracker/
+├── domain/
+│   ├── models.py          # Transaction, Subscription, CategoryRule, MonthlySummary
+│   └── ports.py           # Abstract repository and categoriser interfaces
+├── application/
+│   ├── import_transactions.py
+│   ├── detect_subscriptions.py
+│   └── reporting.py
+├── infrastructure/
+│   ├── database.py        # SQLite implementations of all repos
+│   ├── csv_reader.py      # Bank-agnostic CSV parser
+│   ├── rule_engine.py     # Keyword-based categoriser
+│   └── ollama_client.py   # LLM categoriser (optional, graceful fallback)
+└── presentation/
+    ├── cli.py             # Typer CLI
+    └── web/
+        ├── app.py         # FastAPI application
+        └── templates/     # Jinja2 HTML templates
+tests/
+├── domain/
+├── application/
+├── infrastructure/
+└── fixtures/              # Fake CSVs (no real financial data)
 ```
 
 ---
 
-## Contributing
+## Privacy
 
-This is a personal project — contributions aren't expected, but issues and ideas are welcome.
+- All data stays on your machine in a local SQLite file (`~/.finance-tracker/finance.db`)
+- The `.gitignore` explicitly excludes `*.csv`, `*.ofx`, and `data/` — no accidental data commits
+- Ollama runs locally; no transaction data is sent to any external API
 
 ---
 

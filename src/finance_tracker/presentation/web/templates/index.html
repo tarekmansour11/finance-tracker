@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %} — {{ year }}-{{ "%02d"|format(month) }}{% endblock %}
+
+{% block content %}
+<div class="nav-months">
+  <a href="/month/{{ prev_year }}/{{ prev_month }}">&#8592;</a>
+  <span class="current">{{ year }}-{{ "%02d"|format(month) }}</span>
+  {% if not is_current_month %}
+  <a href="/month/{{ next_year }}/{{ next_month }}">&#8594;</a>
+  {% else %}
+  <span style="color:var(--border)">&#8594;</span>
+  {% endif %}
+</div>
+
+<!-- Stat cards -->
+<div class="grid grid-4">
+  <div class="card">
+    <div class="stat-label">Total Spent</div>
+    <div class="stat-value red">£{{ "%.2f"|format(summary.total_spent) }}</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Income</div>
+    <div class="stat-value green">£{{ "%.2f"|format(summary.total_income) }}</div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Net</div>
+    <div class="stat-value {% if summary.net >= 0 %}green{% else %}red{% endif %}">
+      £{{ "%.2f"|format(summary.net) }}
+    </div>
+  </div>
+  <div class="card">
+    <div class="stat-label">Subscriptions</div>
+    <div class="stat-value">{{ subscriptions|length }}</div>
+  </div>
+</div>
+
+<!-- Charts -->
+<div class="grid grid-2 section">
+  <div class="card">
+    <h2>Spending by Category</h2>
+    {% if summary.totals %}
+    <canvas id="pieChart" height="240"></canvas>
+    {% else %}
+    <p class="empty">No transactions this month.</p>
+    {% endif %}
+  </div>
+  <div class="card">
+    <h2>Month-over-Month</h2>
+    {% if month_labels %}
+    <canvas id="barChart" height="240"></canvas>
+    {% else %}
+    <p class="empty">Not enough data yet.</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Recent transactions -->
+<div class="section">
+  <div class="card">
+    <h2>Recent Transactions</h2>
+    {% if recent_txs %}
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Description</th>
+          <th>Category</th>
+          <th style="text-align:right">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in recent_txs %}
+        <tr>
+          <td style="color:var(--muted)">{{ t.date }}</td>
+          <td>{{ t.description }}</td>
+          <td><span class="badge">{{ t.category or "—" }}</span></td>
+          <td style="text-align:right" class="{% if t.amount < 0 %}debit{% else %}credit{% endif %}">
+            {% if t.amount < 0 %}-{% endif %}£{{ "%.2f"|format(t.amount|abs) }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div style="margin-top:12px"><a href="/transactions" style="color:var(--accent);font-size:13px">View all transactions →</a></div>
+    {% else %}
+    <p class="empty">No transactions this month.</p>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+const PALETTE = [
+  "#6366f1","#22c55e","#f59e0b","#ef4444","#06b6d4",
+  "#a855f7","#ec4899","#14b8a6","#f97316","#84cc16"
+];
+
+{% if summary.totals %}
+new Chart(document.getElementById("pieChart"), {
+  type: "doughnut",
+  data: {
+    labels: {{ category_labels | tojson }},
+    datasets: [{ data: {{ category_values | tojson }}, backgroundColor: PALETTE, borderWidth: 0 }]
+  },
+  options: {
+    plugins: { legend: { position: "right", labels: { color: "#e2e8f0", font: { size: 12 } } } },
+    cutout: "60%"
+  }
+});
+{% endif %}
+
+{% if month_labels %}
+new Chart(document.getElementById("barChart"), {
+  type: "bar",
+  data: {
+    labels: {{ month_labels | tojson }},
+    datasets: [
+      { label: "Spent", data: {{ month_totals | tojson }}, backgroundColor: "#ef4444aa" },
+      { label: "Income", data: {{ month_incomes | tojson }}, backgroundColor: "#22c55eaa" }
+    ]
+  },
+  options: {
+    plugins: { legend: { labels: { color: "#e2e8f0", font: { size: 12 } } } },
+    scales: {
+      x: { ticks: { color: "#8892a4" }, grid: { color: "#2a2d3e" } },
+      y: { ticks: { color: "#8892a4", callback: v => "£" + v }, grid: { color: "#2a2d3e" } }
+    }
+  }
+});
+{% endif %}
+</script>
+{% endblock %}

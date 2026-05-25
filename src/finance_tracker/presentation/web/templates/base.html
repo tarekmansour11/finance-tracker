@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>finance-tracker{% block title %}{% endblock %}</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --border: #2a2d3e;
+      --text: #e2e8f0;
+      --muted: #8892a4;
+      --accent: #6366f1;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      height: 52px;
+    }
+
+    nav .brand {
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      transition: color 0.15s;
+    }
+
+    nav a:hover, nav a.active { color: var(--text); }
+
+    main { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 24px; }
+    h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .grid { display: grid; gap: 16px; }
+    .grid-2 { grid-template-columns: repeat(2, 1fr); }
+    .grid-3 { grid-template-columns: repeat(3, 1fr); }
+    .grid-4 { grid-template-columns: repeat(4, 1fr); }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+    .stat-value.green { color: var(--green); }
+    .stat-value.red { color: var(--red); }
+
+    table { width: 100%; border-collapse: collapse; }
+    thead th { text-align: left; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(99,102,241,0.15);
+      color: var(--accent);
+    }
+
+    .badge.red { background: rgba(239,68,68,0.15); color: var(--red); }
+    .badge.green { background: rgba(34,197,94,0.15); color: var(--green); }
+    .badge.yellow { background: rgba(245,158,11,0.15); color: var(--yellow); }
+
+    .debit { color: var(--red); }
+    .credit { color: var(--green); }
+
+    .section { margin-top: 32px; }
+
+    .nav-months { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+    .nav-months a { color: var(--muted); text-decoration: none; font-size: 20px; }
+    .nav-months a:hover { color: var(--text); }
+    .nav-months .current { font-size: 18px; font-weight: 700; }
+
+    .empty { color: var(--muted); text-align: center; padding: 40px; }
+
+    input, select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .filters { display: flex; gap: 12px; margin-bottom: 20px; }
+
+    @media (max-width: 700px) {
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a class="brand" href="/">finance-tracker</a>
+    <a href="/" {% if request.url.path == "/" %}class="active"{% endif %}>Overview</a>
+    <a href="/transactions" {% if "/transactions" in request.url.path %}class="active"{% endif %}>Transactions</a>
+    <a href="/subscriptions" {% if "/subscriptions" in request.url.path %}class="active"{% endif %}>Subscriptions</a>
+  </nav>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

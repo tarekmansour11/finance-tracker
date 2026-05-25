@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %} — Transactions{% endblock %}
+
+{% block content %}
+<h1>Transactions</h1>
+
+<form method="get" class="filters">
+  <input type="text" name="search" placeholder="Search description..." value="{{ search }}" />
+  <select name="category" onchange="this.form.submit()">
+    <option value="">All categories</option>
+    {% for cat in categories %}
+    <option value="{{ cat }}" {% if cat == selected_category %}selected{% endif %}>{{ cat }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" style="background:var(--accent);color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px;">Filter</button>
+  {% if search or selected_category %}
+  <a href="/transactions" style="color:var(--muted);line-height:2.2;font-size:13px">Clear</a>
+  {% endif %}
+</form>
+
+{% if transactions %}
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Description</th>
+        <th>Category</th>
+        <th>Currency</th>
+        <th style="text-align:right">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in transactions %}
+      <tr>
+        <td style="color:var(--muted);white-space:nowrap">{{ t.date }}</td>
+        <td>{{ t.description }}</td>
+        <td><span class="badge">{{ t.category or "—" }}</span></td>
+        <td style="color:var(--muted)">{{ t.currency }}</td>
+        <td style="text-align:right" class="{% if t.amount < 0 %}debit{% else %}credit{% endif %}">
+          {% if t.amount >= 0 %}+{% endif %}£{{ "%.2f"|format(t.amount|abs) }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p style="color:var(--muted);margin-top:12px;font-size:13px">{{ transactions|length }} transaction(s)</p>
+{% else %}
+<p class="empty">No transactions found.</p>
+{% endif %}
+{% endblock %}
