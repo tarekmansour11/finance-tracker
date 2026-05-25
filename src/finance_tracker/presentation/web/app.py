@@ -42,8 +42,7 @@ def create_app(db_path: Path) -> FastAPI:
         if search:
             all_txs = [t for t in all_txs if search.lower() in t.description.lower()]
         categories = sorted({t.category or "Uncategorised" for t in tx_repo.find_all()})
-        return templates.TemplateResponse("transactions.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "transactions.html", {
             "transactions": all_txs,
             "categories": categories,
             "selected_category": category,
@@ -54,8 +53,7 @@ def create_app(db_path: Path) -> FastAPI:
     def subscriptions_view(request: Request):
         subs = sorted(sub_repo.find_all(), key=lambda s: s.annual_cost, reverse=True)
         total_annual = sum(s.annual_cost for s in subs)
-        return templates.TemplateResponse("subscriptions.html", {
-            "request": request,
+        return templates.TemplateResponse(request, "subscriptions.html", {
             "subscriptions": subs,
             "total_annual": total_annual,
         })
@@ -83,8 +81,7 @@ def _month_view(request, templates, year, month, tx_repo, sub_repo, reporting):
     next_month = month % 12 + 1
     next_year = year if month < 12 else year + 1
 
-    return templates.TemplateResponse("index.html", {
-        "request": request,
+    return templates.TemplateResponse(request, "index.html", {
         "summary": summary,
         "recent_txs": recent_txs,
         "subscriptions": subs,
