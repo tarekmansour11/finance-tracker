@@ -152,6 +152,67 @@ def subscriptions(db: Path = typer.Option(None, "--db")):
 
 
 @app.command()
+def ask(
+    question: str = typer.Argument(..., help='Your question, e.g. "How much did I spend on food last month?"'),
+    model: str = typer.Option("llama3", "--model", "-m", help="Ollama model to use"),
+    db: Path = typer.Option(None, "--db"),
+):
+    """Ask a natural language question about your finances (requires Ollama)."""
+    from datetime import date
+
+    db_path = _get_db_path(db)
+    deps = _build_deps(db_path)
+    reporting = deps["reporting"]
+    sub_repo = deps["sub_repo"]
+
+    summaries = reporting.all_monthly_summaries()
+    if not summaries:
+        console.print("[yellow]No data found. Import a CSV first.[/yellow]")
+        raise typer.Exit(1)
+
+    # Build a compact context the LLM can reason over
+    context_lines = ["## Monthly Spending Summaries"]
+    for s in summaries:
+        context_lines.append(f"\n### {s.year}-{s.month:02d}")
+        context_lines.append(f"Income: £{s.total_income:.2f}")
+        context_lines.append(f"Total spent: £{s.total_spent:.2f}")
+        context_lines.append(f"Net: £{s.net:.2f}")
+        for cat, amt in sorted(s.totals.items(), key=lambda x: x[1], reverse=True):
+            context_lines.append(f"  {cat}: £{amt:.2f}")
+
+    subs = sub_repo.find_all()
+    if subs:
+        context_lines.append("\n## Subscriptions")
+        for sub in subs:
+            context_lines.append(f"  {sub.merchant}: £{sub.amount:.2f}/{sub.frequency.value} (£{sub.annual_cost:.2f}/year)")
+
+    context = "\n".join(context_lines)
+    today = date.today()
+
+    prompt = f"""You are a personal finance assistant. Answer the user's question using only the financial data below.
+Be concise and direct. Use £ for amounts. Today is {today}.
+
+{context}
+
+Question: {question}"""
+
+    try:
+        import ollama as ollama_lib
+        console.print(f"[dim]Asking {model}...[/dim]\n")
+        response = ollama_lib.chat(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        answer = response["message"]["content"].strip()
+        console.print(answer)
+    except Exception as e:
+        console.print(f"[red]Ollama error:[/red] {e}")
+        console.print("\n[yellow]Is Ollama running?[/yellow] Start it with: [bold]ollama serve[/bold]")
+        console.print(f"Then pull a model: [bold]ollama pull {model}[/bold]")
+        raise typer.Exit(1)
+
+
+@app.command()
 def serve(
     db: Path = typer.Option(None, "--db"),
     host: str = typer.Option("127.0.0.1", "--host"),
